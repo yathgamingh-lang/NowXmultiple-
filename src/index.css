@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@keyframes goldenDiamondFloat {
+  0% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(-14px) rotate(8deg) scale(1.04);
+  }
+  100% {
+    transform: translateY(6px) rotate(-6deg) scale(0.98);
+  }
+}
+
+@keyframes goldenGlint {
+  0%, 100% {
+    opacity: 0.1;
+    transform: scale(0.6) rotate(0deg);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.25) rotate(45deg);
+  }
+}
+
+@keyframes diamondSheen {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.gold-diamond-gradient-text {
+  background: linear-gradient(135deg, #fff7cd 0%, #ffd700 35%, #f59e0b 70%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-diamond-border {
+  border-image: linear-gradient(135deg, rgba(255, 215, 0, 0.6), rgba(217, 119, 6, 0.3), rgba(255, 245, 180, 0.8)) 1;
+}

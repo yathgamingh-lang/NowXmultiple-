@@ -1,0 +1,10 @@
+{
+  "name": "NowXmultiple",
+  "description": "NowXmultiple Autonomous mobile IDE, Gamer Section Builder (Sensi, Crosshair HUD, 120FPS), AI Maker Studio, root terminal execution, and voice assistant.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
