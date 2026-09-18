@@ -67,6 +67,14 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span>CODES</span>
           </button>
         )}
+
+        {/* 🛡️ सीक्रेट एडमिन बटन - सिर्फ तेरे लिए */}
+        <button
+          onClick={() => setActiveTab('dev')}
+          className="flex items-center gap-1 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/40 hover:to-blue-500/40 border border-cyan-400/50 px-2.5 py-0.5 rounded-full text-cyan-300 text-[10px] font-mono font-bold transition-all shadow-sm"
+        >
+          <span>🛡️ ADMIN ACCESS</span>
+        </button>
       </div>
 
       {/* Right: Status Pills, Visualizer & Controls */}

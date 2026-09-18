@@ -58,19 +58,11 @@ import { SecretCommandsModal } from './components/SecretCommandsModal';
 import { GoldenDiamondBackground } from './components/GoldenDiamondBackground';
 import { DeveloperSection } from './components/DeveloperSection';
 import { AdminDashboard } from './components/AdminDashboard';
-import AdminPage from './components/AdminPage';
 import { analyticsEngine, SiteAdminSettings } from './analytics';
 
 export default function App() {
   // Navigation & View
   const [activeTab, setActiveTab] = useState<TabType>('home');
-
-  // 🚀 Surgical Redirect: अगर यूज़र /admin पर जाना चाहता है, तो उसे सीधा एडमिन टैब पर भेजें
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
-      setActiveTab('dev'); // यह तेरे AdminDashboard को सीधे स्क्रीन पर खोल देगा
-    }
-  }, []);
   const [activeFile, setActiveFile] = useState<keyof ProjectFiles>('index.html');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
@@ -1378,11 +1370,6 @@ export default function App() {
     });
     speakText(reply);
   };
-
-  // 🚀 यूआरएल चेक करें: अगर लास्ट में /admin लिखा है तो सीधे नया एडमिन पेज खोलें
-  if (typeof window !== 'undefined' && (window.location.pathname === '/admin' || window.location.pathname.endsWith('/admin') || window.location.hash === '#/admin')) {
-    return <AdminPage />;
-  }
 
   return (
     <div className="w-full h-screen bg-[#060401] text-white overflow-hidden flex flex-col font-sans relative">
