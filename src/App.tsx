@@ -57,6 +57,8 @@ import { UnlockBuilderModal } from './components/UnlockBuilderModal';
 import { SecretCommandsModal } from './components/SecretCommandsModal';
 import { GoldenDiamondBackground } from './components/GoldenDiamondBackground';
 import { DeveloperSection } from './components/DeveloperSection';
+import { AdminDashboard } from './components/AdminDashboard';
+import { analyticsEngine, SiteAdminSettings } from './analytics';
 
 export default function App() {
   // Navigation & View
@@ -66,6 +68,9 @@ export default function App() {
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
   const [isCommandDossierOpen, setIsCommandDossierOpen] = useState(false);
+
+  // Global Admin Settings (Broadcast Banner & Maintenance Mode)
+  const [adminSettings, setAdminSettings] = useState<SiteAdminSettings>(() => analyticsEngine.getAdminSettings());
 
   // Builder Lock state (Locked by default, unlocked with code NOWXMULTIPLE)
   // Fresh session reset: resets each time the app is opened as requested
@@ -77,6 +82,16 @@ export default function App() {
   // User Intent: "jab koi pehli baar yaa fir dusri baar jab reset hota hai to ek animation wala command box khule"
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Record visit for enterprise visitor tracking (Vercel ready)
+      analyticsEngine.initVisitor();
+
+      const handleSettingsChange = (e: any) => {
+        if (e.detail) {
+          setAdminSettings(e.detail);
+        }
+      };
+      window.addEventListener('nowx_admin_settings_changed', handleSettingsChange);
+
       localStorage.removeItem('builder_unlocked');
       const hasSeen = sessionStorage.getItem('nowx_dossier_seen');
       if (!hasSeen) {
@@ -85,10 +100,21 @@ export default function App() {
           setIsCommandDossierOpen(true);
           soundFx.playMasterChime();
         }, 700);
-        return () => clearTimeout(timer);
+        return () => {
+          clearTimeout(timer);
+          window.removeEventListener('nowx_admin_settings_changed', handleSettingsChange);
+        };
       }
+      return () => window.removeEventListener('nowx_admin_settings_changed', handleSettingsChange);
     }
   }, []);
+
+  // Track real user navigation events across tabs
+  useEffect(() => {
+    if (activeTab && typeof window !== 'undefined') {
+      analyticsEngine.recordCustomEvent(`Viewed ${activeTab.toUpperCase()} Studio`, `/${activeTab}`);
+    }
+  }, [activeTab]);
 
   // Model & Mode selections
   const [selectedModel, setSelectedModel] = useState<ModelType>('Gemini 3.8 Flash');
@@ -1370,6 +1396,29 @@ export default function App() {
         visible={settings.topCapsule}
       />
 
+      {/* Global Live Announcement Ticker (Broadcasted by Admin) */}
+      {adminSettings.announcementEnabled && adminSettings.announcementText && (
+        <div className="w-full bg-gradient-to-r from-amber-900/40 via-yellow-900/30 to-amber-900/40 border-b border-amber-500/25 px-3 py-1 flex items-center justify-between text-[11px] font-mono text-amber-300 select-none z-30">
+          <div className="flex items-center gap-2 overflow-hidden truncate">
+            <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold text-[9px] border border-amber-400/30 flex-shrink-0 animate-pulse">
+              👑 ANNOUNCEMENT
+            </span>
+            <span className="truncate">{adminSettings.announcementText}</span>
+          </div>
+          <button
+            onClick={() => {
+              const updated = { ...adminSettings, announcementEnabled: false };
+              setAdminSettings(updated);
+              analyticsEngine.saveAdminSettings(updated);
+            }}
+            className="text-gray-400 hover:text-white px-1 ml-2 text-xs"
+            title="Dismiss Announcement"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Main Content Body */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {activeTab === 'home' && (
@@ -1471,31 +1520,16 @@ export default function App() {
           )}
 
           {activeTab === 'dev' && (
-            <DeveloperSection
-              isDevUnlocked={isDevUnlocked}
-              onUnlockDev={(passcode) => {
-                if (passcode.trim() === '6769') {
-                  setIsDevUnlocked(true);
-                  soundFx.playUnlockChime();
-                  logTerminalCommand('auth --pin=6769', 'Developer clearance verified. Welcome Lead Architect Nowempireoff.');
-                  return true;
-                }
-                soundFx.playLockTone();
-                logTerminalCommand('auth --failed', 'Unauthorized PIN on Developer Console.');
-                return false;
-              }}
-              onLockDev={() => {
-                setIsDevUnlocked(false);
-                soundFx.playLockTone();
-              }}
+            <AdminDashboard
               onUnlockBuilder={() => {
                 setIsBuilderUnlocked(true);
                 soundFx.playUnlockChime();
-                addMariaResponse('⚡ Developer Override: Autonomous Builder VIP बाईपास अनलॉक कर दिया गया है!');
+                addMariaResponse('⚡ Admin Override: Autonomous Builder VIP बाईपास अनलॉक कर दिया गया है!');
               }}
               onResetSession={handleResetSession}
               onOpenTerminal={() => setActiveTab('terminal')}
-              onExecuteCommand={handleTerminalCommand}
+              onDeployGameApp={handleDeployGameApp}
+              onCloseAdmin={() => setActiveTab('home')}
             />
           )}
         </div>

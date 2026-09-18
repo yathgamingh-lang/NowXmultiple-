@@ -6,7 +6,7 @@ import {
   Code2,
   Terminal as TerminalIcon,
   Play,
-  User,
+  ShieldCheck, // User आइकॉन की जगह हम सीक्रेट ShieldCheck लगा रहे हैं
 } from 'lucide-react';
 import { TabType } from '../types';
 
@@ -30,7 +30,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     { id: 'editor', label: 'Editor', icon: Code2 },
     { id: 'terminal', label: 'Terminal', icon: TerminalIcon, isDevRestricted: true },
     { id: 'preview', label: 'Preview', icon: Play },
-    { id: 'dev', label: 'Dev', icon: User },
+    { id: 'dev', label: 'Admin 👑', icon: ShieldCheck }, // यहाँ हमने इसे 'Admin' नाम दे दिया है
   ];
 
   return (

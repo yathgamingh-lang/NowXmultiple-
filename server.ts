@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
@@ -41,6 +42,273 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
+
+// Real Server-Side Telemetry & Visitor Tracking Store
+interface RealSession {
+  id: string;
+  visitorId: string;
+  ipMasked: string;
+  country: string;
+  countryCode: string;
+  flag: string;
+  city: string;
+  device: 'Mobile' | 'Desktop' | 'Tablet';
+  browser: string;
+  os: string;
+  path: string;
+  referrer: string;
+  timestamp: number;
+  lastSeen: number;
+  action: string;
+}
+
+interface RealAnalyticsData {
+  totalVisits: number;
+  uniqueVisitors: string[];
+  pageviews: number;
+  sessions: RealSession[];
+  adminSettings: {
+    maintenanceMode: boolean;
+    announcementEnabled: boolean;
+    announcementText: string;
+    aiTurboEngine: boolean;
+  };
+}
+
+const ANALYTICS_FILE = path.join(process.cwd(), "analytics_real.json");
+
+function loadRealAnalytics(): RealAnalyticsData {
+  try {
+    if (fs.existsSync(ANALYTICS_FILE)) {
+      const content = fs.readFileSync(ANALYTICS_FILE, "utf-8");
+      const parsed = JSON.parse(content);
+      return {
+        totalVisits: typeof parsed.totalVisits === 'number' ? parsed.totalVisits : 0,
+        uniqueVisitors: Array.isArray(parsed.uniqueVisitors) ? parsed.uniqueVisitors : [],
+        pageviews: typeof parsed.pageviews === 'number' ? parsed.pageviews : 0,
+        sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
+        adminSettings: parsed.adminSettings || {
+          maintenanceMode: false,
+          announcementEnabled: true,
+          announcementText: '🔥 NowXmultiple VIP Update: Autonomous Builder & 3D Nitro Game Engines are Active!',
+          aiTurboEngine: true,
+        },
+      };
+    }
+  } catch (e) {
+    console.warn("Could not read analytics file, initializing fresh store:", e);
+  }
+  return {
+    totalVisits: 0,
+    uniqueVisitors: [],
+    pageviews: 0,
+    sessions: [],
+    adminSettings: {
+      maintenanceMode: false,
+      announcementEnabled: true,
+      announcementText: '🔥 NowXmultiple VIP Update: Autonomous Builder & 3D Nitro Game Engines are Active!',
+      aiTurboEngine: true,
+    },
+  };
+}
+
+let realAnalytics = loadRealAnalytics();
+
+function saveRealAnalytics() {
+  try {
+    fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(realAnalytics, null, 2));
+  } catch (e) {
+    console.warn("Error saving analytics to file:", e);
+  }
+}
+
+function computeRealStats() {
+  const now = Date.now();
+  // An active user is someone whose session had activity in the last 2 minutes
+  const activeSessions = realAnalytics.sessions.filter(s => (now - s.lastSeen) < 120000);
+  const activeNow = Math.max(1, activeSessions.length);
+
+  // Dynamic Country Distribution strictly based on real sessions
+  const countryCounts: Record<string, { count: number; flag: string; country: string }> = {};
+  realAnalytics.sessions.forEach(s => {
+    const c = s.country || 'India';
+    if (!countryCounts[c]) {
+      countryCounts[c] = { count: 0, flag: s.flag || '🇮🇳', country: c };
+    }
+    countryCounts[c].count++;
+  });
+
+  const totalSess = Math.max(1, realAnalytics.sessions.length);
+  const countryDistribution = Object.values(countryCounts)
+    .map(item => ({
+      country: item.country,
+      flag: item.flag,
+      count: item.count,
+      pct: Math.round((item.count / totalSess) * 100),
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // Dynamic Device Distribution strictly based on real sessions
+  const deviceCounts: Record<string, number> = { Mobile: 0, Desktop: 0, Tablet: 0 };
+  realAnalytics.sessions.forEach(s => {
+    if (s.device && deviceCounts[s.device] !== undefined) {
+      deviceCounts[s.device]++;
+    } else {
+      deviceCounts.Mobile++;
+    }
+  });
+
+  const deviceDistribution = [
+    { device: 'Mobile Phones (Android / iOS)', pct: Math.round((deviceCounts.Mobile / totalSess) * 100), count: deviceCounts.Mobile },
+    { device: 'Desktop & Laptop (PC / Mac)', pct: Math.round((deviceCounts.Desktop / totalSess) * 100), count: deviceCounts.Desktop },
+    { device: 'Tablets / iPads', pct: Math.round((deviceCounts.Tablet / totalSess) * 100), count: deviceCounts.Tablet },
+  ];
+
+  // Dynamic Traffic Sources
+  const sourceCounts: Record<string, number> = {};
+  realAnalytics.sessions.forEach(s => {
+    const ref = s.referrer || 'Direct Link';
+    sourceCounts[ref] = (sourceCounts[ref] || 0) + 1;
+  });
+
+  const trafficSources = Object.entries(sourceCounts).map(([name, count]) => ({
+    name,
+    count,
+    pct: `${Math.round((count / totalSess) * 100)}%`,
+    icon: name.includes('Direct') ? '🔗' : name.includes('Google') ? '🔍' : name.includes('YouTube') ? '▶️' : '🌐',
+  }));
+
+  return {
+    totalVisits: realAnalytics.totalVisits,
+    uniqueVisitors: realAnalytics.uniqueVisitors.length,
+    pageviews: realAnalytics.pageviews,
+    todayVisits: realAnalytics.sessions.filter(s => (now - s.timestamp) < 86400000).length || realAnalytics.totalVisits,
+    activeNow,
+    countryDistribution: countryDistribution.length > 0 ? countryDistribution : [{ country: 'India (भारत)', flag: '🇮🇳', count: realAnalytics.totalVisits || 1, pct: 100 }],
+    deviceDistribution,
+    trafficSources: trafficSources.length > 0 ? trafficSources : [{ name: 'Direct Link (वेबसाइट यूआरएल)', count: realAnalytics.totalVisits || 1, pct: '100%', icon: '🔗' }],
+    sessions: realAnalytics.sessions.slice(0, 30),
+    adminSettings: realAnalytics.adminSettings,
+  };
+}
+
+// Analytics API Endpoints
+app.post("/api/analytics/track", (req, res) => {
+  try {
+    const {
+      visitorId,
+      isNewSession,
+      path: reqPath = "/",
+      action = "Opened NowXmultiple IDE",
+      device = "Mobile",
+      browser = "Chrome",
+      os = "Android",
+      country: clientCountry,
+      countryCode: clientCountryCode,
+      flag: clientFlag,
+      city: clientCity,
+      referrer = "Direct Link",
+    } = req.body;
+
+    const rawIp =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+      req.socket.remoteAddress ||
+      "127.0.0.1";
+
+    const ipMasked = rawIp.includes(".")
+      ? rawIp.split(".").slice(0, 2).join(".") + ".***.***"
+      : rawIp.substring(0, 7) + ":****";
+
+    // Country detection: checks cloud headers or fallback to client geo
+    const headerCountry = (req.headers["x-vercel-ip-country"] || req.headers["cf-ipcountry"]) as string;
+    let country = clientCountry || "India";
+    let countryCode = clientCountryCode || "IN";
+    let flag = clientFlag || "🇮🇳";
+
+    if (headerCountry) {
+      countryCode = headerCountry.toUpperCase();
+      if (countryCode === "IN") { country = "India"; flag = "🇮🇳"; }
+      else if (countryCode === "US") { country = "United States"; flag = "🇺🇸"; }
+      else if (countryCode === "AE") { country = "United Arab Emirates"; flag = "🇦🇪"; }
+      else if (countryCode === "GB") { country = "United Kingdom"; flag = "🇬🇧"; }
+    }
+
+    // Update real metrics
+    if (isNewSession) {
+      realAnalytics.totalVisits += 1;
+    } else if (realAnalytics.totalVisits === 0) {
+      realAnalytics.totalVisits = 1;
+    }
+
+    if (visitorId && !realAnalytics.uniqueVisitors.includes(visitorId)) {
+      realAnalytics.uniqueVisitors.push(visitorId);
+    } else if (realAnalytics.uniqueVisitors.length === 0) {
+      realAnalytics.uniqueVisitors.push(visitorId || 'v-1');
+    }
+
+    realAnalytics.pageviews += 1;
+
+    // Find or add session
+    const existingIndex = realAnalytics.sessions.findIndex(s => s.visitorId === visitorId);
+    const now = Date.now();
+
+    if (existingIndex >= 0) {
+      realAnalytics.sessions[existingIndex].lastSeen = now;
+      realAnalytics.sessions[existingIndex].path = reqPath;
+      if (action) realAnalytics.sessions[existingIndex].action = action;
+    } else {
+      const newSession: RealSession = {
+        id: "sess-" + Math.random().toString(36).substring(2, 9),
+        visitorId: visitorId || "v-" + now,
+        ipMasked,
+        country,
+        countryCode,
+        flag,
+        city: clientCity || "Live Visitor",
+        device: device as any,
+        browser,
+        os,
+        path: reqPath,
+        referrer,
+        timestamp: now,
+        lastSeen: now,
+        action,
+      };
+      realAnalytics.sessions.unshift(newSession);
+      if (realAnalytics.sessions.length > 100) {
+        realAnalytics.sessions.pop();
+      }
+    }
+
+    saveRealAnalytics();
+    res.json({ success: true, stats: computeRealStats() });
+  } catch (err: any) {
+    console.error("Analytics track error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/analytics/stats", (_req, res) => {
+  res.json(computeRealStats());
+});
+
+app.post("/api/analytics/reset", (_req, res) => {
+  realAnalytics.totalVisits = 0;
+  realAnalytics.uniqueVisitors = [];
+  realAnalytics.pageviews = 0;
+  realAnalytics.sessions = [];
+  saveRealAnalytics();
+  res.json({ success: true, stats: computeRealStats() });
+});
+
+app.post("/api/analytics/settings", (req, res) => {
+  const { settings } = req.body;
+  if (settings) {
+    realAnalytics.adminSettings = { ...realAnalytics.adminSettings, ...settings };
+    saveRealAnalytics();
+  }
+  res.json({ success: true, adminSettings: realAnalytics.adminSettings });
+});
 
 // Lazy-initialize Gemini AI Client
 function getGeminiClient(): GoogleGenAI | null {
