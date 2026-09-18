@@ -58,6 +58,7 @@ import { SecretCommandsModal } from './components/SecretCommandsModal';
 import { GoldenDiamondBackground } from './components/GoldenDiamondBackground';
 import { DeveloperSection } from './components/DeveloperSection';
 import { AdminDashboard } from './components/AdminDashboard';
+import AdminPage from './components/AdminPage';
 import { analyticsEngine, SiteAdminSettings } from './analytics';
 
 export default function App() {
@@ -1370,6 +1371,11 @@ export default function App() {
     });
     speakText(reply);
   };
+
+  // 🚀 यूआरएल चेक करें: अगर लास्ट में /admin लिखा है तो सीधे नया एडमिन पेज खोलें
+  if (typeof window !== 'undefined' && (window.location.pathname === '/admin' || window.location.pathname.endsWith('/admin') || window.location.hash === '#/admin')) {
+    return <AdminPage />;
+  }
 
   return (
     <div className="w-full h-screen bg-[#060401] text-white overflow-hidden flex flex-col font-sans relative">
