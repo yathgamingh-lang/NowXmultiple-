@@ -64,6 +64,13 @@ import { analyticsEngine, SiteAdminSettings } from './analytics';
 export default function App() {
   // Navigation & View
   const [activeTab, setActiveTab] = useState<TabType>('home');
+
+  // 🚀 Surgical Redirect: अगर यूज़र /admin पर जाना चाहता है, तो उसे सीधा एडमिन टैब पर भेजें
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
+      setActiveTab('dev'); // यह तेरे AdminDashboard को सीधे स्क्रीन पर खोल देगा
+    }
+  }, []);
   const [activeFile, setActiveFile] = useState<keyof ProjectFiles>('index.html');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
