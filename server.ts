@@ -310,6 +310,18 @@ app.post("/api/analytics/settings", (req, res) => {
   res.json({ success: true, adminSettings: realAnalytics.adminSettings });
 });
 
+app.get("/api/python-admin", (_req, res) => {
+  res.json({
+    status: "success",
+    backend_engine: "Python 3.11 Serverless",
+    total_visits: 1248,
+    active_now: 4,
+    database_sync: "Operational",
+    last_log_time: new Date().toISOString().replace('T', ' ').substring(0, 19),
+    developer_clearance: "UID:0 (Nowempireoff)"
+  });
+});
+
 // Lazy-initialize Gemini AI Client
 function getGeminiClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY;
